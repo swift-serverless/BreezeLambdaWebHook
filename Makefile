@@ -1,7 +1,5 @@
 SWIFT_BIN_PATH = $(shell swift build --show-bin-path)
-EXAMPLE_PATH = ./Examples/ItemAPI
-EXAMPLE_GITHUB_WEBHOOK_PATH = ./Examples/GitHubWebhook
-EXAMPLE_WEBHOOK_PATH = ./Examples/Webhook
+TEST_PACKAGE= $(SWIFT_BIN_PATH)/BreezeLambdaWebHookPackageTests.xctest
 BUILD_TEMP = .build/temp
 
 linux_test:
@@ -26,6 +24,6 @@ test:
 	swift test --sanitize=thread --enable-code-coverage
 
 coverage:
-	llvm-cov export $(SWIFT_BIN_PATH)/BreezePackageTests.xctest \
+	llvm-cov export $(TEST_PACKAGE) \
 		--instr-profile=$(SWIFT_BIN_PATH)/codecov/default.profdata \
 		--format=lcov > $(GITHUB_WORKSPACE)/lcov.info
