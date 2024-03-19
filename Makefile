@@ -21,8 +21,7 @@ localstack:
 	docker run -it --rm -p "4566:4566" localstack/localstack
 
 test:
-	swift build --build-tests --enable-code-coverage
-	swift test --skip-build --enable-code-coverage
+	swift test --enable-code-coverage
 
 coverage:
 	llvm-cov export $(TEST_PACKAGE) \
