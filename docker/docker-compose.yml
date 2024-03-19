@@ -1,0 +1,33 @@
+# usage:
+# docker-compose -f docker/docker-compose.yml run test
+version: "3.3"
+
+services:
+  common: &common
+    build: .
+    volumes:
+      - ..:/src
+    working_dir: /src
+
+  test:
+    <<: *common
+    build: .
+    volumes:
+      - ..:/src
+    working_dir: /src
+    depends_on:
+      - localstack
+    environment:
+      - LOCALSTACK_ENDPOINT=http://localstack:4566
+    command: /bin/bash -xcl "swift test --sanitize=thread"
+
+  localstack:
+    image: localstack/localstack
+
+  shell:
+    <<: *common
+    depends_on:
+      - localstack
+    environment:
+      - LOCALSTACK_ENDPOINT=http://localstack:4566
+    entrypoint: /bin/bash
