@@ -18,8 +18,6 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/swift-server/swift-aws-lambda-runtime.git", from: "1.0.0-alpha.1"),
         .package(url: "https://github.com/swift-server/swift-aws-lambda-events.git", from: "0.1.0"),
-        .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
-        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.0"),
         .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.11.2"),
     ],
     targets: [
