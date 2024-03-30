@@ -1,5 +1,5 @@
 {
-    "body": "body value",
+    "body": "{ \"value\": \"body value\" }",
     "headers": {
         "accept": "*/*",
         "accept-encoding": "gzip, deflate, br",

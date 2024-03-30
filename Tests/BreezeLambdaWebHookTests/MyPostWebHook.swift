@@ -18,6 +18,15 @@ import AsyncHTTPClient
 import AWSLambdaEvents
 import AWSLambdaRuntimeCore
 
+struct MyPostResponse: Codable {
+    let handler: String?
+    let body: String
+}
+
+struct MyPostRequest: Codable {
+    let value: String
+}
+
 class MyPostWebHook: BreezeLambdaWebHookHandler {
     
     let handlerContext: HandlerContext
@@ -29,9 +38,10 @@ class MyPostWebHook: BreezeLambdaWebHookHandler {
     func handle(context: AWSLambdaRuntimeCore.LambdaContext, event: AWSLambdaEvents.APIGatewayV2Request) async -> AWSLambdaEvents.APIGatewayV2Response {
         do {
             try await Task.sleep(nanoseconds: 1_000_000)
-            guard let value: String = event.body else {
+            guard let body: MyPostRequest = try event.bodyObject() else {
                 throw BreezeLambdaWebHookError.invalidRequest
             }
+            let value = MyPostResponse(handler: handler, body: body.value)
             return APIGatewayV2Response(with: value, statusCode: .ok)
         } catch {
             return APIGatewayV2Response(with: error, statusCode: .badRequest)
