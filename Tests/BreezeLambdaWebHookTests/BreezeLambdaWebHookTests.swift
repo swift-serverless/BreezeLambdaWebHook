@@ -52,10 +52,12 @@ final class BreezeLambdaWebHookTests: XCTestCase {
         let createRequest = try Fixtures.fixture(name: Fixtures.postWebHook, type: "json")
         let request = try decoder.decode(APIGatewayV2Request.self, from: createRequest)
         let apiResponse: APIGatewayV2Response = try await Lambda.test(BreezeLambdaWebHook<MyPostWebHook>.self, with: request)
-        let response: String = try apiResponse.decodeBody()
+        let response: MyPostResponse = try apiResponse.decodeBody()
         XCTAssertEqual(apiResponse.statusCode, .ok)
         XCTAssertEqual(apiResponse.headers, [ "Content-Type": "application/json" ])
-        XCTAssertEqual(response, "body value")
+        let body: MyPostRequest = try request.bodyObject()
+        XCTAssertEqual(response.body, body.value)
+        XCTAssertEqual(response.handler, "build/webhook.post")
     }
     
     func test_getWhenMissingQuery_thenError() async throws {
