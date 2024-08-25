@@ -13,7 +13,7 @@
 //    limitations under the License.
 
 import struct AWSLambdaEvents.APIGatewayV2Response
-import struct AWSLambdaEvents.HTTPResponseStatus
+import HTTPTypes
 import class Foundation.JSONEncoder
 
 public extension APIGatewayV2Response {
@@ -31,7 +31,7 @@ public extension APIGatewayV2Response {
     /// - Parameters:
     ///   - error: Error
     ///   - statusCode: HTTP Status Code
-    init(with error: Error, statusCode: AWSLambdaEvents.HTTPResponseStatus) {
+    init(with error: Error, statusCode: HTTPResponse.Status) {
         let bodyError = BodyError(error: String(describing: error))
         self.init(with: bodyError, statusCode: statusCode)
     }
@@ -40,7 +40,7 @@ public extension APIGatewayV2Response {
     /// - Parameters:
     ///   - object: Encodable Object
     ///   - statusCode: HTTP Status Code
-    init<Output: Encodable>(with object: Output, statusCode: AWSLambdaEvents.HTTPResponseStatus) {
+    init<Output: Encodable>(with object: Output, statusCode: HTTPResponse.Status) {
         var body = "{}"
         if let data = try? Self.encoder.encode(object) {
             body = String(data: data, encoding: .utf8) ?? body
