@@ -18,10 +18,6 @@ import class Foundation.JSONEncoder
 
 public extension APIGatewayV2Response {
     private static let encoder = JSONEncoder()
-    
-    /// defaultHeaders
-    /// Override the headers in APIGatewayV2Response
-    static var defaultHeaders = [ "Content-Type": "application/json" ]
 
     struct BodyError: Codable {
         public let error: String
@@ -40,14 +36,19 @@ public extension APIGatewayV2Response {
     /// - Parameters:
     ///   - object: Encodable Object
     ///   - statusCode: HTTP Status Code
-    init<Output: Encodable>(with object: Output, statusCode: HTTPResponse.Status) {
+    ///   - headers: HTTP Headers
+    init<Output: Encodable>(
+        with object: Output,
+        statusCode: HTTPResponse.Status,
+        headers: [String: String] = [ "Content-Type": "application/json" ]
+    ) {
         var body = "{}"
         if let data = try? Self.encoder.encode(object) {
             body = String(data: data, encoding: .utf8) ?? body
         }
         self.init(
             statusCode: statusCode,
-            headers: APIGatewayV2Response.defaultHeaders,
+            headers: headers,
             body: body,
             isBase64Encoded: false
         )

@@ -1,4 +1,4 @@
-//    Copyright 2023 (c) Andrea Scuderi - https://github.com/swift-serverless
+//    Copyright 2024 (c) Andrea Scuderi - https://github.com/swift-serverless
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -14,16 +14,14 @@
 
 import AWSLambdaEvents
 import AWSLambdaRuntime
-@testable import AWSLambdaRuntimeCore
-import AWSLambdaTesting
+@testable import AWSLambdaRuntime
 import Logging
 import NIO
 
 extension Lambda {
     public static func test<Handler: LambdaHandler>(
         _ handlerType: Handler.Type,
-        with event: Handler.Event,
-        using config: TestConfig = .init()
+        with event: Handler.Event
     ) async throws -> Handler.Output {
         let logger = Logger(label: "test")
         let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)

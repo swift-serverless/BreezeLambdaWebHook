@@ -15,13 +15,12 @@
 import AsyncHTTPClient
 import AWSLambdaEvents
 import AWSLambdaRuntime
-import AWSLambdaRuntimeCore
 import Foundation
 
-public protocol BreezeLambdaWebHookHandler {
+public protocol BreezeLambdaWebHookHandler: LambdaHandler {
     var handlerContext: HandlerContext { get }
     init(handlerContext: HandlerContext)
-    func handle(context: AWSLambdaRuntimeCore.LambdaContext, event: APIGatewayV2Request) async -> APIGatewayV2Response
+    func handle(_ event: APIGatewayV2Request, context: LambdaContext) async throws -> APIGatewayV2Response
 }
 
 public extension BreezeLambdaWebHookHandler {

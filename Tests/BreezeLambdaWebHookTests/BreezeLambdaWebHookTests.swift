@@ -14,9 +14,8 @@
 
 import AWSLambdaEvents
 import AWSLambdaRuntime
-import AWSLambdaTesting
 import AsyncHTTPClient
-@testable import BreezeLambdaWebHook
+@testable import BreezeLambdaWebHookService
 import XCTest
 
 final class BreezeLambdaWebHookTests: XCTestCase {
