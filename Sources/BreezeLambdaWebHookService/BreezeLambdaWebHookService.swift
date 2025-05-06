@@ -21,8 +21,11 @@ import BreezeHTTPClientService
 import Logging
 
 public struct HandlerContext: Sendable {
-    public let handler: String?
     public let httpClient: HTTPClient
+    
+    public init(httpClient: HTTPClient) {
+        self.httpClient = httpClient
+    }
 }
 
 public actor BreezeLambdaWebHookService<Handler: BreezeLambdaWebHookHandler>: Service {
@@ -35,10 +38,8 @@ public actor BreezeLambdaWebHookService<Handler: BreezeLambdaWebHookHandler>: Se
     }
 
     public func run() async throws {
-        let _handler = Lambda.env("_HANDLER")
-        serviceConfig.logger.info("handler: \(_handler ?? "")")
         let httpClient = await serviceConfig.httpClientService.httpClient
-        let handlerContext = HandlerContext(handler: _handler, httpClient: httpClient)
+        let handlerContext = HandlerContext(httpClient: httpClient)
         self.handlerContext = handlerContext
         let runtime = LambdaRuntime(body: handler)
         try await runtime.run()

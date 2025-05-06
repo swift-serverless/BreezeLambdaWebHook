@@ -21,13 +21,8 @@ public enum BreezeClientServiceError: Error {
 public struct BreezeClientServiceConfig: Sendable {
     
     public let httpClientService: BreezeHTTPClientServing
-    public let logger: Logger
     
-    public init(
-        httpClientService: BreezeHTTPClientServing,
-        logger: Logger
-    ) {
+    public init(httpClientService: BreezeHTTPClientServing) {
         self.httpClientService = httpClientService
-        self.logger = logger
     }
 }

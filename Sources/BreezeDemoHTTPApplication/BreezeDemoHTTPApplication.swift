@@ -40,11 +40,9 @@ struct BreezeDemoApplication {
                 timeout: .seconds(60),
                 logger: logger
             )
-            let lambdaService = BreezeLambdaWebHookService<DemoLambdaHandler>.init(
-                serviceConfig: BreezeClientServiceConfig(
-                    httpClientService: httpClientService,
-                    logger: logger
-                )
+            let serviceConfig = BreezeClientServiceConfig(httpClientService: httpClientService)
+            let lambdaService = BreezeLambdaWebHookService<DemoLambdaHandler>(
+                serviceConfig: serviceConfig
             )
             try await lambdaService.run()
         } catch {

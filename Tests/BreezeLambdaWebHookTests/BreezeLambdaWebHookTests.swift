@@ -15,23 +15,31 @@
 import AWSLambdaEvents
 import AWSLambdaRuntime
 import AsyncHTTPClient
+import BreezeHTTPClientService
 @testable import BreezeLambdaWebHookService
 import XCTest
+import Logging
 
 final class BreezeLambdaWebHookTests: XCTestCase {
 
     let decoder = JSONDecoder()
+    let config = BreezeClientServiceConfig(
+        httpClientService: BreezeHTTPClientService(
+            timeout: .seconds(1),
+            logger: Logger(label: "test")
+        )
+    )
 
     override func setUpWithError() throws {
         try super.setUpWithError()
         setEnvironmentVar(name: "LOCAL_LAMBDA_SERVER_ENABLED", value: "true", overwrite: true)
-        LambdaInitializationContext.WebHook.timeout = 1
+//        LambdaInitializationContext.WebHook.timeout = 1
     }
 
     override func tearDownWithError() throws {
         unsetenv("LOCAL_LAMBDA_SERVER_ENABLED")
         unsetenv("_HANDLER")
-        LambdaInitializationContext.WebHook.timeout = 30
+//        LambdaInitializationContext.WebHook.timeout = 30
         try super.tearDownWithError()
     }
     
@@ -39,7 +47,7 @@ final class BreezeLambdaWebHookTests: XCTestCase {
         setEnvironmentVar(name: "_HANDLER", value: "build/webhook.get", overwrite: true)
         let createRequest = try Fixtures.fixture(name: Fixtures.getWebHook, type: "json")
         let request = try decoder.decode(APIGatewayV2Request.self, from: createRequest)
-        let apiResponse: APIGatewayV2Response = try await Lambda.test(BreezeLambdaWebHook<MyPostWebHook>.self, with: request)
+        let apiResponse: APIGatewayV2Response = try await Lambda.test(MyPostWebHook.self, config: config, with: request)
         let response: APIGatewayV2Response.BodyError = try apiResponse.decodeBody()
         XCTAssertEqual(apiResponse.statusCode, .badRequest)
         XCTAssertEqual(apiResponse.headers, [ "Content-Type": "application/json" ])
@@ -50,7 +58,7 @@ final class BreezeLambdaWebHookTests: XCTestCase {
         setEnvironmentVar(name: "_HANDLER", value: "build/webhook.post", overwrite: true)
         let createRequest = try Fixtures.fixture(name: Fixtures.postWebHook, type: "json")
         let request = try decoder.decode(APIGatewayV2Request.self, from: createRequest)
-        let apiResponse: APIGatewayV2Response = try await Lambda.test(BreezeLambdaWebHook<MyPostWebHook>.self, with: request)
+        let apiResponse: APIGatewayV2Response = try await Lambda.test(MyPostWebHook.self, config: config, with: request)
         let response: MyPostResponse = try apiResponse.decodeBody()
         XCTAssertEqual(apiResponse.statusCode, .ok)
         XCTAssertEqual(apiResponse.headers, [ "Content-Type": "application/json" ])
@@ -63,7 +71,7 @@ final class BreezeLambdaWebHookTests: XCTestCase {
         setEnvironmentVar(name: "_HANDLER", value: "build/webhook.get", overwrite: true)
         let createRequest = try Fixtures.fixture(name: Fixtures.postWebHook, type: "json")
         let request = try decoder.decode(APIGatewayV2Request.self, from: createRequest)
-        let apiResponse: APIGatewayV2Response = try await Lambda.test(BreezeLambdaWebHook<MyGetWebHook>.self, with: request)
+        let apiResponse: APIGatewayV2Response = try await Lambda.test(MyGetWebHook.self, config: config, with: request)
         let response: APIGatewayV2Response.BodyError = try apiResponse.decodeBody()
         XCTAssertEqual(apiResponse.statusCode, .badRequest)
         XCTAssertEqual(apiResponse.headers, [ "Content-Type": "application/json" ])
@@ -74,7 +82,7 @@ final class BreezeLambdaWebHookTests: XCTestCase {
         setEnvironmentVar(name: "_HANDLER", value: "build/webhook.post", overwrite: true)
         let createRequest = try Fixtures.fixture(name: Fixtures.getWebHook, type: "json")
         let request = try decoder.decode(APIGatewayV2Request.self, from: createRequest)
-        let apiResponse: APIGatewayV2Response = try await Lambda.test(BreezeLambdaWebHook<MyGetWebHook>.self, with: request)
+        let apiResponse: APIGatewayV2Response = try await Lambda.test(MyGetWebHook.self, config: config, with: request)
         let response: [String: String] = try apiResponse.decodeBody()
         XCTAssertEqual(apiResponse.statusCode, .ok)
         XCTAssertEqual(apiResponse.headers, [ "Content-Type": "application/json" ])
