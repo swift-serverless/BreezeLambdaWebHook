@@ -13,7 +13,7 @@
 //    limitations under the License.
 
 import Foundation
-import BreezeLambdaWebHookService
+import BreezeLambdaWebHook
 import AsyncHTTPClient
 import AWSLambdaEvents
 import AWSLambdaRuntime

@@ -12,69 +12,77 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-import AWSLambdaEvents
-import BreezeLambdaWebHookService
-import BreezeHTTPClientService
 import Foundation
-@testable import AWSLambdaRuntime
+import AsyncHTTPClient
+import AWSLambdaEvents
 import Logging
 import NIO
+@testable import BreezeLambdaWebHook
+@testable import AWSLambdaRuntime
+
 
 extension Lambda {
     public static func test(
         _ handlerType: any BreezeLambdaWebHookHandler.Type,
-        config: BreezeClientServiceConfig,
+        config: BreezeHTTPClientConfig,
         with event: APIGatewayV2Request) async throws -> APIGatewayV2Response {
+            let logger = Logger(label: "evaluateHandler")
+            let decoder = JSONDecoder()
+            let encoder = JSONEncoder()
+            let timeout = HTTPClient.Configuration.Timeout(
+                connect: config.timeout,
+                read: config.timeout
+            )
+            let configuration = HTTPClient.Configuration(timeout: timeout)
+            let httpClient = HTTPClient(
+                eventLoopGroupProvider: .singleton,
+                configuration: configuration
+            )
+            let sut = handlerType.init(
+                handlerContext: HandlerContext(httpClient: httpClient)
+            )
+            let closureHandler = ClosureHandler { event, context in
+                //Inject Mock Response
+                try await sut.handle(event, context: context)
+            }
             
-        let logger = Logger(label: "evaluateHandler")
-        let decoder = JSONDecoder()
-        let encoder = JSONEncoder()
-        
-        let sut = await handlerType.init(
-            handlerContext: HandlerContext(httpClient: config.httpClientService.httpClient)
-        )
-        let closureHandler = ClosureHandler { event, context in
-            //Inject Mock Response
-            try await sut.handle(event, context: context)
+            var handler = LambdaCodableAdapter(
+                encoder: encoder,
+                decoder: decoder,
+                handler: LambdaHandlerAdapter(handler: closureHandler)
+            )
+            let data = try encoder.encode(event)
+            let event = ByteBuffer(data: data)
+            let writer = MockLambdaResponseStreamWriter()
+            let context = LambdaContext.__forTestsOnly(
+                requestID: UUID().uuidString,
+                traceID: UUID().uuidString,
+                invokedFunctionARN: "arn:",
+                timeout: .milliseconds(6000),
+                logger: logger
+            )
+            try await handler.handle(event, responseWriter: writer, context: context)
+            let result = await writer.output ?? ByteBuffer()
+            try await httpClient.shutdown()
+            return try decoder.decode(APIGatewayV2Response.self, from: result)
         }
-        
-        var handler = LambdaCodableAdapter(
-            encoder: encoder,
-            decoder: decoder,
-            handler: LambdaHandlerAdapter(handler: closureHandler)
-        )
-        let data = try encoder.encode(event)
-        let event = ByteBuffer(data: data)
-        let writer = MockLambdaResponseStreamWriter()
-        let context = LambdaContext.__forTestsOnly(
-            requestID: UUID().uuidString,
-            traceID: UUID().uuidString,
-            invokedFunctionARN: "arn:",
-            timeout: .milliseconds(6000),
-            logger: logger
-        )
-        try await handler.handle(event, responseWriter: writer, context: context)
-        let result = await writer.output ?? ByteBuffer()
-        try await config.httpClientService.httpClient.shutdown()
-        return try decoder.decode(APIGatewayV2Response.self, from: result)
-    }
 }
 
 final actor MockLambdaResponseStreamWriter: LambdaResponseStreamWriter {
     private var buffer: ByteBuffer?
-
+    
     var output: ByteBuffer? {
         self.buffer
     }
-
+    
     func writeAndFinish(_ buffer: ByteBuffer) async throws {
         self.buffer = buffer
     }
-
+    
     func write(_ buffer: ByteBuffer) async throws {
         fatalError("Unexpected call")
     }
-
+    
     func finish() async throws {
         fatalError("Unexpected call")
     }

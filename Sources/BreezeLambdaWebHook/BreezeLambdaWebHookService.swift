@@ -17,7 +17,6 @@ import AWSLambdaEvents
 import AWSLambdaRuntime
 import Foundation
 import ServiceLifecycle
-import BreezeHTTPClientService
 import Logging
 
 public struct HandlerContext: Sendable {
@@ -30,19 +29,37 @@ public struct HandlerContext: Sendable {
 
 public actor BreezeLambdaWebHookService<Handler: BreezeLambdaWebHookHandler>: Service {
     
-    private let serviceConfig: BreezeClientServiceConfig
-    private var handlerContext: HandlerContext?
+    let config: BreezeHTTPClientConfig
+    var handlerContext: HandlerContext?
     
-    public init(serviceConfig: BreezeClientServiceConfig) {
-        self.serviceConfig = serviceConfig
+    public init(config: BreezeHTTPClientConfig) {
+        self.config = config
     }
 
     public func run() async throws {
-        let httpClient = await serviceConfig.httpClientService.httpClient
+        let timeout = HTTPClient.Configuration.Timeout(
+            connect: config.timeout,
+            read: config.timeout
+        )
+        let configuration = HTTPClient.Configuration(timeout: timeout)
+        let httpClient = HTTPClient(
+            eventLoopGroupProvider: .singleton,
+            configuration: configuration
+        )
         let handlerContext = HandlerContext(httpClient: httpClient)
         self.handlerContext = handlerContext
         let runtime = LambdaRuntime(body: handler)
-        try await runtime.run()
+        try await withGracefulShutdownHandler {
+            try await runtime.run()
+        } onGracefulShutdown: {
+            do {
+                self.config.logger.info("Shutting down HTTP client...")
+                try httpClient.syncShutdown()
+                self.config.logger.info("HTTP client has been shut down.")
+            } catch {
+                self.config.logger.error("Error shutting down HTTP client: \(error)")
+            }
+        }
     }
     
     func handler(event: APIGatewayV2Request, context: LambdaContext) async throws -> APIGatewayV2Response {

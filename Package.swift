@@ -14,12 +14,8 @@ let package = Package(
     platforms: platforms,
     products: [
         .library(
-            name: "BreezeLambdaWebHookService",
-            targets: ["BreezeLambdaWebHookService"]
-        ),
-        .library(
-            name: "BreezeHTTPClientService",
-            targets: ["BreezeHTTPClientService"]
+            name: "BreezeLambdaWebHook",
+            targets: ["BreezeLambdaWebHook"]
         ),
         .executable(
             name: "BreezeDemoHTTPApplication",
@@ -28,38 +24,32 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/swift-server/swift-aws-lambda-runtime.git", branch: "main"),
+//        .package(path: "../swift-aws-lambda-runtime"),
         .package(url: "https://github.com/swift-server/swift-aws-lambda-events.git", from: "0.5.0"),
         .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.11.2"),
-        .package(url: "https://github.com/apple/swift-log.git", from: "1.6.2"),
+        .package(url: "https://github.com/swift-server/swift-service-lifecycle.git", from: "2.6.3")
     ],
     targets: [
         .target(
-            name: "BreezeLambdaWebHookService",
+            name: "BreezeLambdaWebHook",
             dependencies: [
-                "BreezeHTTPClientService",
                 .product(name: "AWSLambdaRuntime", package: "swift-aws-lambda-runtime"),
                 .product(name: "AWSLambdaEvents", package: "swift-aws-lambda-events"),
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
             ]
         ),
-        .target(
-            name: "BreezeHTTPClientService",
-            dependencies: [
-                .product(name: "AsyncHTTPClient", package: "async-http-client"),
-                .product(name: "Logging", package: "swift-log")
-            ]
-        ),
         .executableTarget(
             name: "BreezeDemoHTTPApplication",
             dependencies: [
-                "BreezeLambdaWebHookService"
+                "BreezeLambdaWebHook"
             ]
         ),
         .testTarget(
             name: "BreezeLambdaWebHookTests",
             dependencies: [
                 .product(name: "AWSLambdaRuntime", package: "swift-aws-lambda-runtime"),
-                "BreezeLambdaWebHookService"
+                .product(name: "ServiceLifecycleTestKit", package: "swift-service-lifecycle"),
+                "BreezeLambdaWebHook"
             ],
             resources: [.copy("Fixtures")]
         ),
