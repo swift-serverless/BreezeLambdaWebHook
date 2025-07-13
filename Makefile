@@ -27,3 +27,7 @@ coverage:
 	llvm-cov export $(TEST_PACKAGE) \
 		--instr-profile=$(SWIFT_BIN_PATH)/codecov/default.profdata \
 		--format=lcov > $(GITHUB_WORKSPACE)/lcov.info
+
+preview_docc_lambda_api:
+	swift package --disable-sandbox preview-documentation --target BreezeLambdaWebHook
+

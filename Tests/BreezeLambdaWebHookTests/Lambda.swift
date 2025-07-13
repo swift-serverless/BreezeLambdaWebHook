@@ -1,4 +1,4 @@
-//    Copyright 2023 (c) Andrea Scuderi - https://github.com/swift-serverless
+//    Copyright 2024 (c) Andrea Scuderi - https://github.com/swift-serverless
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -12,44 +12,85 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
+import Foundation
+#endif
+import AsyncHTTPClient
 import AWSLambdaEvents
-import AWSLambdaRuntime
-@testable import AWSLambdaRuntimeCore
-import AWSLambdaTesting
 import Logging
 import NIO
+import NIOFoundationCompat
+@testable import BreezeLambdaWebHook
+@testable import AWSLambdaRuntime
+
 
 extension Lambda {
-    public static func test<Handler: LambdaHandler>(
-        _ handlerType: Handler.Type,
-        with event: Handler.Event,
-        using config: TestConfig = .init()
-    ) async throws -> Handler.Output {
-        let logger = Logger(label: "test")
-        let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        defer {
-            try! eventLoopGroup.syncShutdownGracefully()
+    public static func test(
+        _ handlerType: any BreezeLambdaWebHookHandler.Type,
+        config: BreezeHTTPClientConfig,
+        with event: APIGatewayV2Request) async throws -> APIGatewayV2Response {
+            let logger = Logger(label: "evaluateHandler")
+            let decoder = JSONDecoder()
+            let encoder = JSONEncoder()
+            let timeout = HTTPClient.Configuration.Timeout(
+                connect: config.timeout,
+                read: config.timeout
+            )
+            let configuration = HTTPClient.Configuration(timeout: timeout)
+            let httpClient = HTTPClient(
+                eventLoopGroupProvider: .singleton,
+                configuration: configuration
+            )
+            let sut = handlerType.init(
+                handlerContext: HandlerContext(httpClient: httpClient)
+            )
+            let closureHandler = ClosureHandler { event, context in
+                //Inject Mock Response
+                try await sut.handle(event, context: context)
+            }
+            
+            var handler = LambdaCodableAdapter(
+                encoder: encoder,
+                decoder: decoder,
+                handler: LambdaHandlerAdapter(handler: closureHandler)
+            )
+            let data = try encoder.encode(event)
+            let event = ByteBuffer(data: data)
+            let writer = MockLambdaResponseStreamWriter()
+            let context = LambdaContext.__forTestsOnly(
+                requestID: UUID().uuidString,
+                traceID: UUID().uuidString,
+                invokedFunctionARN: "arn:",
+                timeout: .milliseconds(6000),
+                logger: logger
+            )
+            try await handler.handle(event, responseWriter: writer, context: context)
+            let result = await writer.output ?? ByteBuffer()
+            let value = Data(result.readableBytesView)
+            try await httpClient.shutdown()
+            return try decoder.decode(APIGatewayV2Response.self, from: value)
         }
-        let eventLoop = eventLoopGroup.next()
+}
 
-        let initContext = LambdaInitializationContext.__forTestsOnly(
-            logger: logger,
-            eventLoop: eventLoop
-        )
-
-        let context = LambdaContext.__forTestsOnly(
-            requestID: config.requestID,
-            traceID: config.traceID,
-            invokedFunctionARN: config.invokedFunctionARN,
-            timeout: config.timeout,
-            logger: logger,
-            eventLoop: eventLoop
-        )
-        let handler = try await Handler(context: initContext)
-        defer {
-            let eventLoop = initContext.eventLoop.next()
-            try? initContext.terminator.terminate(eventLoop: eventLoop).wait()
-        }
-        return try await handler.handle(event, context: context)
+final actor MockLambdaResponseStreamWriter: LambdaResponseStreamWriter {
+    private var buffer: ByteBuffer?
+    
+    var output: ByteBuffer? {
+        self.buffer
+    }
+    
+    func writeAndFinish(_ buffer: ByteBuffer) async throws {
+        self.buffer = buffer
+    }
+    
+    func write(_ buffer: ByteBuffer) async throws {
+        fatalError("Unexpected call")
+    }
+    
+    func finish() async throws {
+        fatalError("Unexpected call")
     }
 }
+

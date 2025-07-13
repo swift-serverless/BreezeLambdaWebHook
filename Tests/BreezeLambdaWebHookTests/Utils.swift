@@ -12,8 +12,8 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-import Foundation
 import AWSLambdaEvents
+import Foundation
 
 func setEnvironmentVar(name: String, value: String, overwrite: Bool) {
     setenv(name, value, overwrite ? 1 : 0)

@@ -12,73 +12,80 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+import Testing
 import AWSLambdaEvents
 import AWSLambdaRuntime
-import AWSLambdaTesting
 import AsyncHTTPClient
 @testable import BreezeLambdaWebHook
-import XCTest
+import Logging
+import Foundation
 
-final class BreezeLambdaWebHookTests: XCTestCase {
+@Suite("BreezeLambdaWebHookSuite")
+struct BreezeLambdaWebHookTests: ~Copyable {
 
     let decoder = JSONDecoder()
-
-    override func setUpWithError() throws {
-        try super.setUpWithError()
+    let config = BreezeHTTPClientConfig(
+        timeout: .seconds(1),
+        logger: Logger(label: "test")
+    )
+    
+    init() {
+        setEnvironmentVar(name: "_HANDLER", value: "build/webhook", overwrite: true)
         setEnvironmentVar(name: "LOCAL_LAMBDA_SERVER_ENABLED", value: "true", overwrite: true)
-        LambdaInitializationContext.WebHook.timeout = 1
     }
-
-    override func tearDownWithError() throws {
+    
+    deinit {
         unsetenv("LOCAL_LAMBDA_SERVER_ENABLED")
         unsetenv("_HANDLER")
-        LambdaInitializationContext.WebHook.timeout = 30
-        try super.tearDownWithError()
     }
     
-    func test_postWhenMissingBody_thenError() async throws {
-        setEnvironmentVar(name: "_HANDLER", value: "build/webhook.get", overwrite: true)
+    @Test("PostWhenMissingBody_ThenError")
+    func postWhenMissingBody_thenError() async throws {
         let createRequest = try Fixtures.fixture(name: Fixtures.getWebHook, type: "json")
         let request = try decoder.decode(APIGatewayV2Request.self, from: createRequest)
-        let apiResponse: APIGatewayV2Response = try await Lambda.test(BreezeLambdaWebHook<MyPostWebHook>.self, with: request)
+        let apiResponse: APIGatewayV2Response = try await Lambda.test(MyPostWebHook.self, config: config, with: request)
         let response: APIGatewayV2Response.BodyError = try apiResponse.decodeBody()
-        XCTAssertEqual(apiResponse.statusCode, .badRequest)
-        XCTAssertEqual(apiResponse.headers, [ "Content-Type": "application/json" ])
-        XCTAssertEqual(response.error, "invalidRequest")
+        
+        #expect(apiResponse.statusCode == .badRequest)
+        #expect(apiResponse.headers == [ "Content-Type": "application/json" ])
+        #expect(response.error == "invalidRequest")
     }
     
-    func test_postWhenBody_thenValue() async throws {
-        setEnvironmentVar(name: "_HANDLER", value: "build/webhook.post", overwrite: true)
+    @Test("PostWhenBody_ThenValue")
+    func postWhenBody_thenValue() async throws {
         let createRequest = try Fixtures.fixture(name: Fixtures.postWebHook, type: "json")
         let request = try decoder.decode(APIGatewayV2Request.self, from: createRequest)
-        let apiResponse: APIGatewayV2Response = try await Lambda.test(BreezeLambdaWebHook<MyPostWebHook>.self, with: request)
+        let apiResponse: APIGatewayV2Response = try await Lambda.test(MyPostWebHook.self, config: config, with: request)
         let response: MyPostResponse = try apiResponse.decodeBody()
-        XCTAssertEqual(apiResponse.statusCode, .ok)
-        XCTAssertEqual(apiResponse.headers, [ "Content-Type": "application/json" ])
         let body: MyPostRequest = try request.bodyObject()
-        XCTAssertEqual(response.body, body.value)
-        XCTAssertEqual(response.handler, "build/webhook.post")
+        
+        #expect(apiResponse.statusCode == .ok)
+        #expect(apiResponse.headers == [ "Content-Type": "application/json" ])
+        #expect(response.body == body.value)
+        #expect(response.handler == "build/webhook")
     }
     
-    func test_getWhenMissingQuery_thenError() async throws {
-        setEnvironmentVar(name: "_HANDLER", value: "build/webhook.get", overwrite: true)
+    @Test("GetWhenMissingQuery_ThenError")
+    func getWhenMissingQuery_thenError() async throws {
         let createRequest = try Fixtures.fixture(name: Fixtures.postWebHook, type: "json")
         let request = try decoder.decode(APIGatewayV2Request.self, from: createRequest)
-        let apiResponse: APIGatewayV2Response = try await Lambda.test(BreezeLambdaWebHook<MyGetWebHook>.self, with: request)
+        let apiResponse: APIGatewayV2Response = try await Lambda.test(MyGetWebHook.self, config: config, with: request)
         let response: APIGatewayV2Response.BodyError = try apiResponse.decodeBody()
-        XCTAssertEqual(apiResponse.statusCode, .badRequest)
-        XCTAssertEqual(apiResponse.headers, [ "Content-Type": "application/json" ])
-        XCTAssertEqual(response.error, "invalidRequest")
+        
+        #expect(apiResponse.statusCode == .badRequest)
+        #expect(apiResponse.headers == [ "Content-Type": "application/json" ])
+        #expect(response.error == "invalidRequest")
     }
     
-    func test_getWhenQuery_thenValue() async throws {
-        setEnvironmentVar(name: "_HANDLER", value: "build/webhook.post", overwrite: true)
+    @Test("GetWhenQuery_ThenValue")
+    func getWhenQuery_thenValue() async throws {
         let createRequest = try Fixtures.fixture(name: Fixtures.getWebHook, type: "json")
         let request = try decoder.decode(APIGatewayV2Request.self, from: createRequest)
-        let apiResponse: APIGatewayV2Response = try await Lambda.test(BreezeLambdaWebHook<MyGetWebHook>.self, with: request)
+        let apiResponse: APIGatewayV2Response = try await Lambda.test(MyGetWebHook.self, config: config, with: request)
         let response: [String: String] = try apiResponse.decodeBody()
-        XCTAssertEqual(apiResponse.statusCode, .ok)
-        XCTAssertEqual(apiResponse.headers, [ "Content-Type": "application/json" ])
-        XCTAssertEqual(response.count, 2)
+        
+        #expect(apiResponse.statusCode == .ok)
+        #expect(apiResponse.headers == [ "Content-Type": "application/json" ])
+        #expect(response.count == 2)
     }
 }

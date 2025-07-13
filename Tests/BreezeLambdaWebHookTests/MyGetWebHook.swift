@@ -12,11 +12,15 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
 import Foundation
+#endif
 import BreezeLambdaWebHook
 import AsyncHTTPClient
 import AWSLambdaEvents
-import AWSLambdaRuntimeCore
+import AWSLambdaRuntime
 
 class MyGetWebHook: BreezeLambdaWebHookHandler {
     
@@ -26,7 +30,7 @@ class MyGetWebHook: BreezeLambdaWebHookHandler {
         self.handlerContext = handlerContext
     }
     
-    func handle(context: AWSLambdaRuntimeCore.LambdaContext, event: AWSLambdaEvents.APIGatewayV2Request) async -> AWSLambdaEvents.APIGatewayV2Response {
+    func handle(_ event: APIGatewayV2Request, context: LambdaContext) async -> APIGatewayV2Response {
         do {
             try await Task.sleep(nanoseconds: 1_000_000)
             guard let params = event.queryStringParameters else {

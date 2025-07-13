@@ -15,19 +15,24 @@
 import AsyncHTTPClient
 import AWSLambdaEvents
 import AWSLambdaRuntime
-import AWSLambdaRuntimeCore
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
 import Foundation
+#endif
 
-public protocol BreezeLambdaWebHookHandler {
+public protocol BreezeLambdaWebHookHandler: LambdaHandler {
     var handlerContext: HandlerContext { get }
     init(handlerContext: HandlerContext)
-    func handle(context: AWSLambdaRuntimeCore.LambdaContext, event: APIGatewayV2Request) async -> APIGatewayV2Response
+    func handle(_ event: APIGatewayV2Request, context: LambdaContext) async throws -> APIGatewayV2Response
 }
 
+/// A default implementation of the BreezeLambdaWebHookHandler protocol
 public extension BreezeLambdaWebHookHandler {
     var handler: String? {
-        handlerContext.handler
+        Lambda.env("_HANDLER")
     }
+    
     var httpClient: AsyncHTTPClient.HTTPClient {
         handlerContext.httpClient
     }
