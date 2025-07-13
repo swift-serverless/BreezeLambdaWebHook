@@ -74,7 +74,7 @@ struct BreezeLambdaWebHookServiceTests {
         let event = try decoder.decode(APIGatewayV2Request.self, from: createRequest)
         let context = LambdaContext(requestID: "req1", traceID: "trace1", invokedFunctionARN: "", deadline: .now(), logger: logger)
         
-        await #expect(throws: BreezeClientServiceError.invalidHttpClient) {
+        await #expect(throws: BreezeClientServiceError.invalidHandler) {
             try await service.handler(event: event, context: context)
         }
     }

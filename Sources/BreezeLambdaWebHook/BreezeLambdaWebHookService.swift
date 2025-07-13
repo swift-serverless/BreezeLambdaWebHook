@@ -27,13 +27,19 @@ public struct HandlerContext: Sendable {
     }
 }
 
+/// A service that runs a Breeze Lambda WebHook handler
+///
+/// This service is responsible for providing the necessary context and configuration to the handler,
+/// including the HTTP client and any other required resources.
+///
+/// - Note: This service is designed to be used with the Breeze Lambda WebHook framework, which allows for handling webhooks in a serverless environment.
 public actor BreezeLambdaWebHookService<Handler: BreezeLambdaWebHookHandler>: Service {
     
     let config: BreezeHTTPClientConfig
     var handlerContext: HandlerContext?
     let httpClient: HTTPClient
-    private var isStarted = false
     
+    /// Initialilizer with a configuration for the Breeze HTTP Client.
     public init(config: BreezeHTTPClientConfig) {
         self.config = config
         let timeout = HTTPClient.Configuration.Timeout(
@@ -47,8 +53,8 @@ public actor BreezeLambdaWebHookService<Handler: BreezeLambdaWebHookHandler>: Se
         )
     }
 
+    /// Runs the Breeze Lambda WebHook service.
     public func run() async throws {
-        isStarted = true
         let handlerContext = HandlerContext(httpClient: httpClient)
         self.handlerContext = handlerContext
         let runtime = LambdaRuntime(body: handler)
@@ -61,9 +67,10 @@ public actor BreezeLambdaWebHookService<Handler: BreezeLambdaWebHookHandler>: Se
         }
     }
     
+    /// Handler function that processes incoming events.
     func handler(event: APIGatewayV2Request, context: LambdaContext) async throws -> APIGatewayV2Response {
         guard let handlerContext = handlerContext else {
-            throw BreezeClientServiceError.invalidHttpClient
+            throw BreezeClientServiceError.invalidHandler
         }
         return try await Handler(handlerContext: handlerContext).handle(event, context: context)
     }

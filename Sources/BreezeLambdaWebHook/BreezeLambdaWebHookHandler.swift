@@ -23,10 +23,12 @@ public protocol BreezeLambdaWebHookHandler: LambdaHandler {
     func handle(_ event: APIGatewayV2Request, context: LambdaContext) async throws -> APIGatewayV2Response
 }
 
+/// A default implementation of the BreezeLambdaWebHookHandler protocol
 public extension BreezeLambdaWebHookHandler {
     var handler: String? {
         Lambda.env("_HANDLER")
     }
+    
     var httpClient: AsyncHTTPClient.HTTPClient {
         handlerContext.httpClient
     }

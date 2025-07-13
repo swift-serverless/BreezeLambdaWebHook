@@ -18,16 +18,29 @@ import ServiceLifecycle
 import Logging
 import NIOCore
 
+/// The Service that handles Breeze Lambda WebHook functionality.
 public struct BreezeLambdaWebHook<LambdaHandler: BreezeLambdaWebHookHandler>: Service {
     
+    /// The name of the service, used for logging and identification.
     public let name: String
+    /// Configuration for the Breeze HTTP Client.
     public let config: BreezeHTTPClientConfig
     
+    /// Initializes a new instance of with the given name and configuration.
+    /// - Parameters:
+    ///  - name: The name of the service.
+    ///  - config: Configuration for the Breeze HTTP Client.
     public init(name: String, config: BreezeHTTPClientConfig) {
         self.name = name
         self.config = config
     }
     
+    /// Runs the Breeze Lambda WebHook service.
+    /// - Throws: An error if the service fails to start or run.
+    ///
+    /// This method initializes the Breeze Lambda WebHook service and starts it,
+    /// handling any errors that may occur during the process.
+    /// It gracefully shuts down the service on termination signals.
     public func run() async throws {
         do {
             let lambdaService = BreezeLambdaWebHookService<LambdaHandler>(

@@ -15,10 +15,13 @@
 import Logging
 import NIOCore
 
+/// Error types for BreezeClientService
 public enum BreezeClientServiceError: Error {
-    case invalidHttpClient
+    /// The handler is invalid or not set
+    case invalidHandler
 }
 
+/// Configuration for the Breeze HTTP Client
 public struct BreezeHTTPClientConfig: Sendable {
     public init(timeout: TimeAmount, logger: Logger) {
         self.timeout = timeout

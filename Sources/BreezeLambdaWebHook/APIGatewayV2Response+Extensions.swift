@@ -16,14 +16,16 @@ import struct AWSLambdaEvents.APIGatewayV2Response
 import HTTPTypes
 import class Foundation.JSONEncoder
 
+/// Extensions for `APIGatewayV2Response` to simplify response creation
 public extension APIGatewayV2Response {
     private static let encoder = JSONEncoder()
 
+    /// Body of an error response
     struct BodyError: Codable {
         public let error: String
     }
     
-    /// init
+    /// Initializer with body error and status code
     /// - Parameters:
     ///   - error: Error
     ///   - statusCode: HTTP Status Code
@@ -32,11 +34,16 @@ public extension APIGatewayV2Response {
         self.init(with: bodyError, statusCode: statusCode)
     }
     
-    /// init
+    /// Initializer with decodable object, status code, and headers
     /// - Parameters:
     ///   - object: Encodable Object
     ///   - statusCode: HTTP Status Code
     ///   - headers: HTTP Headers
+    ///  - Returns: APIGatewayV2Response
+    ///
+    ///  This initializer encodes the object to JSON and sets it as the body of the response.
+    ///  If encoding fails, it defaults to an empty JSON object.
+    ///  - Note: The `Content-Type` header is set to `application/json` by default.
     init<Output: Encodable>(
         with object: Output,
         statusCode: HTTPResponse.Status,

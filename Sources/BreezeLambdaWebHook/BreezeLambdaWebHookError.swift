@@ -14,6 +14,8 @@
 
 import Foundation
 
+/// Error types for BreezeLambdaWebHook
 public enum BreezeLambdaWebHookError: Error {
+    /// The request is invalid or malformed
     case invalidRequest
 }

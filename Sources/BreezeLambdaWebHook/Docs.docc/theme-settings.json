@@ -1,0 +1,12 @@
+{
+    "theme": {
+        "color": {
+            "header": "#DE5E44",
+            "documentation-intro-title": "#FFFFFF",
+            "documentation-intro-fill":  "linear-gradient(30deg, #DE5E44, #A2331D)",
+            "documentation-intro-accent": "#FFFFFF",
+            "documentation-intro-eyebrow": "#FFFFFF",
+            "link": "var(--color-header)"
+        }
+    }
+}
