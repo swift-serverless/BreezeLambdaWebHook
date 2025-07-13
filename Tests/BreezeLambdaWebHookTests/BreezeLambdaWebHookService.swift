@@ -44,26 +44,32 @@ struct BreezeLambdaWebHookServiceTests {
     @Test("Service creates HTTP client with correct timeout configuration")
     func serviceCreatesHTTPClientWithCorrectConfig() async throws {
         try await testGracefulShutdown { gracefulShutdownTestTrigger in
+            let (gracefulStream, continuation) = AsyncStream<Void>.makeStream()
             try await withThrowingTaskGroup(of: Void.self) { group in
                 let logger = Logger(label: "test")
                 let config = BreezeHTTPClientConfig(timeout: .seconds(30), logger: logger)
                 let sut = BreezeLambdaWebHookService<MockHandler>(config: config)
-                
-                await withTaskCancellationOrGracefulShutdownHandler {
-                    group.addTask {
-                        try await sut.run()
-                    }
-                } onCancelOrGracefulShutdown: {
+                group.addTask {
+                    try await Task.sleep(nanoseconds: 1_000_000_000)
                     gracefulShutdownTestTrigger.triggerGracefulShutdown()
-                    logger.info("On Graceful Shutdown")
                 }
-    
-                try await Task.sleep(nanoseconds: 1_000_000_000)
-                group.cancelAll()
-                
-                let handlerContext = try #require(await sut.handlerContext)
-                #expect(handlerContext.httpClient.configuration.timeout.read == .seconds(30))
-                #expect(handlerContext.httpClient.configuration.timeout.connect == .seconds(30))
+                group.addTask {
+                    try await withGracefulShutdownHandler {
+                        try await sut.run()
+                        print("BreezeLambdaAPIService started successfully")
+                    } onGracefulShutdown: {
+                        logger.info("On Graceful Shutdown")
+                        continuation.yield()
+                        continuation.finish()
+                    }
+                }
+                for await _ in gracefulStream {
+                    logger.info("Graceful shutdown stream received")
+                    let handlerContext = try #require(await sut.handlerContext)
+                    #expect(handlerContext.httpClient.configuration.timeout.read == .seconds(30))
+                    #expect(handlerContext.httpClient.configuration.timeout.connect == .seconds(30))
+                    group.cancelAll()
+                }
             }
         }
     }
@@ -86,36 +92,39 @@ struct BreezeLambdaWebHookServiceTests {
     @Test("Handler delegates to specific handler implementation")
     func handlerDelegatesToImplementation() async throws {
         try await testGracefulShutdown { gracefulShutdownTestTrigger in
+            let (gracefulStream, continuation) = AsyncStream<Void>.makeStream()
             try await withThrowingTaskGroup(of: Void.self) { group in
-                
                 let logger = Logger(label: "test")
                 let config = BreezeHTTPClientConfig(timeout: .seconds(30), logger: logger)
                 let sut = BreezeLambdaWebHookService<MockHandler>(config: config)
-                
-                group.addTask {
-                    try await withGracefulShutdownHandler {
-                        try await sut.run()
-                    } onGracefulShutdown: {
-                        logger.info("On Graceful Shutdown")
-                    }
-                }
                 group.addTask {
                     try await Task.sleep(nanoseconds: 1_000_000_000)
                     gracefulShutdownTestTrigger.triggerGracefulShutdown()
                 }
-                
-                let createRequest = try Fixtures.fixture(name: Fixtures.getWebHook, type: "json")
-                let event = try decoder.decode(APIGatewayV2Request.self, from: createRequest)
-                let context = LambdaContext(requestID: "req1", traceID: "trace1", invokedFunctionARN: "", deadline: .now(), logger: logger)
-                
-                let response = try await sut.handler(event: event, context: context)
-                let handlerContext = try #require(await sut.handlerContext)
-                #expect(response.statusCode == 200)
-                #expect(response.body == "Mock response")
-                #expect(handlerContext.httpClient.configuration.timeout.read == .seconds(30))
-                #expect(handlerContext.httpClient.configuration.timeout.connect == .seconds(30))
-                
-                group.cancelAll()
+                group.addTask {
+                    try await withGracefulShutdownHandler {
+                        try await sut.run()
+                        print("BreezeLambdaAPIService started successfully")
+                    } onGracefulShutdown: {
+                        logger.info("On Graceful Shutdown")
+                        continuation.yield()
+                        continuation.finish()
+                    }
+                }
+                for await _ in gracefulStream {
+                    logger.info("Graceful shutdown stream received")
+                    let createRequest = try Fixtures.fixture(name: Fixtures.getWebHook, type: "json")
+                    let event = try decoder.decode(APIGatewayV2Request.self, from: createRequest)
+                    let context = LambdaContext(requestID: "req1", traceID: "trace1", invokedFunctionARN: "", deadline: .now(), logger: logger)
+                    
+                    let response = try await sut.handler(event: event, context: context)
+                    let handlerContext = try #require(await sut.handlerContext)
+                    #expect(response.statusCode == 200)
+                    #expect(response.body == "Mock response")
+                    #expect(handlerContext.httpClient.configuration.timeout.read == .seconds(30))
+                    #expect(handlerContext.httpClient.configuration.timeout.connect == .seconds(30))
+                    group.cancelAll()
+                }
             }
         }
     }
