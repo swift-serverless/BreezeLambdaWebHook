@@ -1,17 +1,13 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.1
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
-#if os(macOS)
-let platforms: [PackageDescription.SupportedPlatform]? = [.macOS(.v15), .iOS(.v13)]
-#else
-let platforms: [PackageDescription.SupportedPlatform]? = nil
-#endif
-
 let package = Package(
     name: "BreezeLambdaWebHook",
-    platforms: platforms,
+    platforms: [
+        .macOS(.v15)
+    ],
     products: [
         .library(
             name: "BreezeLambdaWebHook",
@@ -23,10 +19,9 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/swift-server/swift-aws-lambda-runtime.git", branch: "main"),
-//        .package(path: "../swift-aws-lambda-runtime"),
+        .package(url: "https://github.com/andrea-scuderi/swift-aws-lambda-runtime.git", branch: "main"),
         .package(url: "https://github.com/swift-server/swift-aws-lambda-events.git", from: "0.5.0"),
-        .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.11.2"),
+        .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.22.0"),
         .package(url: "https://github.com/swift-server/swift-service-lifecycle.git", from: "2.6.3")
     ],
     targets: [

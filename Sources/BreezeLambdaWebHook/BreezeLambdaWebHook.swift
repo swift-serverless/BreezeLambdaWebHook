@@ -35,7 +35,7 @@ public struct BreezeLambdaWebHook<LambdaHandler: BreezeLambdaWebHookHandler>: Se
             )
             let serviceGroup = ServiceGroup(
                 services: [lambdaService],
-                gracefulShutdownSignals: [.sigterm],
+                gracefulShutdownSignals: [.sigterm, .sigint],
                 logger: config.logger
             )
             config.logger.error("Starting \(name) ...")

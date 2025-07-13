@@ -31,34 +31,33 @@ public actor BreezeLambdaWebHookService<Handler: BreezeLambdaWebHookHandler>: Se
     
     let config: BreezeHTTPClientConfig
     var handlerContext: HandlerContext?
+    let httpClient: HTTPClient
+    private var isStarted = false
     
     public init(config: BreezeHTTPClientConfig) {
         self.config = config
-    }
-
-    public func run() async throws {
         let timeout = HTTPClient.Configuration.Timeout(
             connect: config.timeout,
             read: config.timeout
         )
         let configuration = HTTPClient.Configuration(timeout: timeout)
-        let httpClient = HTTPClient(
+        httpClient = HTTPClient(
             eventLoopGroupProvider: .singleton,
             configuration: configuration
         )
+    }
+
+    public func run() async throws {
+        isStarted = true
         let handlerContext = HandlerContext(httpClient: httpClient)
         self.handlerContext = handlerContext
         let runtime = LambdaRuntime(body: handler)
-        try await withGracefulShutdownHandler {
+        try await runTaskWithCancellationOnGracefulShutdown {
             try await runtime.run()
         } onGracefulShutdown: {
-            do {
-                self.config.logger.info("Shutting down HTTP client...")
-                try httpClient.syncShutdown()
-                self.config.logger.info("HTTP client has been shut down.")
-            } catch {
-                self.config.logger.error("Error shutting down HTTP client: \(error)")
-            }
+            self.config.logger.info("Shutting down HTTP client...")
+            _ = self.httpClient.shutdown()
+            self.config.logger.info("HTTP client has been shut down.")
         }
     }
     
@@ -67,6 +66,32 @@ public actor BreezeLambdaWebHookService<Handler: BreezeLambdaWebHookHandler>: Se
             throw BreezeClientServiceError.invalidHttpClient
         }
         return try await Handler(handlerContext: handlerContext).handle(event, context: context)
+    }
+    
+    /// Runs a task with cancellation on graceful shutdown.
+    ///
+    /// - Note: It's required to allow a full process shutdown without leaving tasks hanging.
+    private func runTaskWithCancellationOnGracefulShutdown(
+        operation: @escaping @Sendable () async throws -> Void,
+        onGracefulShutdown: () async throws -> Void
+    ) async throws {
+        let (cancelOrGracefulShutdown, cancelOrGracefulShutdownContinuation) = AsyncStream<Void>.makeStream()
+        let task = Task {
+            try await withTaskCancellationOrGracefulShutdownHandler {
+                try await operation()
+            } onCancelOrGracefulShutdown: {
+                cancelOrGracefulShutdownContinuation.yield()
+                cancelOrGracefulShutdownContinuation.finish()
+            }
+        }
+        for await _ in cancelOrGracefulShutdown {
+            try await onGracefulShutdown()
+            task.cancel()
+        }
+    }
+    
+    deinit {
+        _ = httpClient.shutdown()
     }
 }
 
