@@ -30,9 +30,20 @@ public struct BreezeLambdaWebHook<LambdaHandler: BreezeLambdaWebHookHandler>: Se
     /// - Parameters:
     ///  - name: The name of the service.
     ///  - config: Configuration for the Breeze HTTP Client.
-    public init(name: String, config: BreezeHTTPClientConfig) {
+    ///
+    ///  This initializer sets up the Breeze Lambda WebHook service with a specified name and configuration.
+    ///
+    /// - Note: If no configuration is provided, a default configuration with a 30-second timeout and a logger will be used.
+    public init(
+        name: String,
+        config: BreezeHTTPClientConfig? = nil
+    ) {
         self.name = name
-        self.config = config
+        let defaultConfig = BreezeHTTPClientConfig(
+            timeout: .seconds(30),
+            logger: Logger(label: "\(name)")
+        )
+        self.config = config ?? defaultConfig
     }
     
     /// Runs the Breeze Lambda WebHook service.

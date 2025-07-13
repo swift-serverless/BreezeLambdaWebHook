@@ -23,7 +23,10 @@ public enum BreezeClientServiceError: Error {
 
 /// Configuration for the Breeze HTTP Client
 public struct BreezeHTTPClientConfig: Sendable {
-    public init(timeout: TimeAmount, logger: Logger) {
+    public init(
+        timeout: TimeAmount = .seconds(30),
+        logger: Logger = Logger(label: "BreezeLambdaWebHookLogger")
+    ) {
         self.timeout = timeout
         self.logger = logger
     }

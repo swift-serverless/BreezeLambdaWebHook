@@ -18,7 +18,6 @@ import AWSLambdaRuntime
 import AsyncHTTPClient
 import Logging
 import NIOCore
-import ServiceLifecycle
 
 /// This is a simple example of a Breeze Lambda WebHook handler.
 /// It uses the BreezeHTTPClientService to make an HTTP request to example.com
@@ -57,18 +56,8 @@ struct DemoLambdaHandler: BreezeLambdaWebHookHandler, Sendable {
 @main
 struct BreezeDemoHTTPApplication {
     
-    static let applicationName = "BreezeDemoHTTPApplication"
-    static let logger = Logger(label: "BreezeDemoHTTPApplication")
-    
     static func main() async throws {
-        let config = BreezeHTTPClientConfig(
-            timeout: .seconds(30),
-            logger: logger
-        )
-        let app = BreezeLambdaWebHook<DemoLambdaHandler>(
-            name: applicationName,
-            config: config,
-        )
-        try await app.run()
+        let lambda = BreezeLambdaWebHook<DemoLambdaHandler>(name: "DemoLambdaHandler")
+        try await lambda.run()
     }
 }
