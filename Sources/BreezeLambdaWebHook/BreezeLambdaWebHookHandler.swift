@@ -15,7 +15,11 @@
 import AsyncHTTPClient
 import AWSLambdaEvents
 import AWSLambdaRuntime
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
 import Foundation
+#endif
 
 public protocol BreezeLambdaWebHookHandler: LambdaHandler {
     var handlerContext: HandlerContext { get }

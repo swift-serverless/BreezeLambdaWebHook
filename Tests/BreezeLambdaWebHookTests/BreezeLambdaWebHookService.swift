@@ -20,7 +20,11 @@ import AWSLambdaRuntime
 import ServiceLifecycleTestKit
 @testable import BreezeLambdaWebHook
 import Logging
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
 import Foundation
+#endif
 import NIOCore
 
 

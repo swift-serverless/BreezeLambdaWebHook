@@ -12,11 +12,16 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
 import Foundation
+#endif
 import AsyncHTTPClient
 import AWSLambdaEvents
 import Logging
 import NIO
+import NIOFoundationCompat
 @testable import BreezeLambdaWebHook
 @testable import AWSLambdaRuntime
 
@@ -63,8 +68,9 @@ extension Lambda {
             )
             try await handler.handle(event, responseWriter: writer, context: context)
             let result = await writer.output ?? ByteBuffer()
+            let value = Data(result.readableBytesView)
             try await httpClient.shutdown()
-            return try decoder.decode(APIGatewayV2Response.self, from: result)
+            return try decoder.decode(APIGatewayV2Response.self, from: value)
         }
 }
 
