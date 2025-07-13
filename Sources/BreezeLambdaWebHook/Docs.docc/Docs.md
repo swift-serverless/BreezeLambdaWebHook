@@ -33,11 +33,42 @@ The framework handles the underlying AWS Lambda event processing, allowing you t
 4. The handler returns a response, which is serialized back to the API Gateway format
 
 ## Getting Started
+
+Install the package by adding it to your `Package.swift` file:
+
+```swift
+// swift-tools-version:6.1
+// The swift-tools-version declares the minimum version of Swift required to build this package.
+
+import PackageDescription
+
+let package = Package(
+    name: "BreezeWebHook",
+    platforms: [
+        .macOS(.v15)
+    ],
+    products: [
+        .executable(name: "WebHook", targets: ["WebHook"]),
+    ],
+    dependencies: [
+        .package(url: "https://github.com/swift-serverless/BreezeLambdaWebHook.git", branch: "main"),
+        .package(url: "https://github.com/andrea-scuderi/swift-aws-lambda-runtime.git", branch: "main"),
+    ],
+    targets: [
+        .executableTarget(
+            name: "WebHook",
+             dependencies: [
+                .product(name: "BreezeLambdaWebHook", package: "BreezeLambdaWebHook"),
+            ]
+        )
+    ]
+)
+```
  
 To create a webhook handler, implement the BreezeLambdaWebHookHandler protocol:
 
 ```swift
-class MyWebhook: BreezeLambdaWebHookHandler {
+class Webhook: BreezeLambdaWebHookHandler {
     let handlerContext: HandlerContext
     
     required init(handlerContext: HandlerContext) {
@@ -51,7 +82,7 @@ class MyWebhook: BreezeLambdaWebHookHandler {
 }
 ```
 
-Then, implement the `main.swift` file to run the Lambda function:
+Then, implement the `@main` to run the Lambda function:
 ```swift
 import BreezeLambdaWebHook
 import AWSLambdaEvents
@@ -63,7 +94,7 @@ import NIOCore
 @main
 struct BreezeDemoHTTPApplication {
     static func main() async throws {
-        let app = BreezeLambdaWebHook<DemoLambdaHandler>(name: "BreezeDemoHTTPApplication")
+        let app = BreezeLambdaWebHook<WebHook>(name: "WebHook")
         try await app.run()
     }
 }
