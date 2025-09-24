@@ -15,7 +15,7 @@
 import Testing
 @testable import AsyncHTTPClient
 import AWSLambdaEvents
-import AWSLambdaRuntime
+@testable import AWSLambdaRuntime
 @testable import ServiceLifecycle
 import ServiceLifecycleTestKit
 @testable import BreezeLambdaWebHook
@@ -82,7 +82,7 @@ struct BreezeLambdaWebHookServiceTests {
         
         let createRequest = try Fixtures.fixture(name: Fixtures.getWebHook, type: "json")
         let event = try decoder.decode(APIGatewayV2Request.self, from: createRequest)
-        let context = LambdaContext(requestID: "req1", traceID: "trace1", invokedFunctionARN: "", deadline: .now(), logger: logger)
+        let context = LambdaContext(requestID: "req1", traceID: "trace1", invokedFunctionARN: "", deadline: LambdaClock().now, logger: logger)
         
         await #expect(throws: BreezeClientServiceError.invalidHandler) {
             try await service.handler(event: event, context: context)
@@ -115,7 +115,7 @@ struct BreezeLambdaWebHookServiceTests {
                     logger.info("Graceful shutdown stream received")
                     let createRequest = try Fixtures.fixture(name: Fixtures.getWebHook, type: "json")
                     let event = try decoder.decode(APIGatewayV2Request.self, from: createRequest)
-                    let context = LambdaContext(requestID: "req1", traceID: "trace1", invokedFunctionARN: "", deadline: .now(), logger: logger)
+                    let context = LambdaContext(requestID: "req1", traceID: "trace1", invokedFunctionARN: "", deadline: LambdaClock().now, logger: logger)
                     
                     let response = try await sut.handler(event: event, context: context)
                     let handlerContext = try #require(await sut.handlerContext)

@@ -31,7 +31,7 @@ struct MyPostRequest: Codable {
     let value: String
 }
 
-class MyPostWebHook: BreezeLambdaWebHookHandler {
+final class MyPostWebHook: BreezeLambdaWebHookHandler, Sendable {
     
     let handlerContext: HandlerContext
     
