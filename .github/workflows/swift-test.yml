@@ -19,6 +19,7 @@ jobs:
       matrix:
         image:
           - swift:6.1.2
+          - swift:6.2.0
     container:
       image: ${{ matrix.image }}
      # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
