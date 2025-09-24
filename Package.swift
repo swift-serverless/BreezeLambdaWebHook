@@ -19,7 +19,7 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/swift-server/swift-aws-lambda-runtime.git", from: "2.0.0-beta.1"),
+        .package(url: "https://github.com/swift-server/swift-aws-lambda-runtime.git", from: "2.0.0-rc.1"),
         .package(url: "https://github.com/swift-server/swift-aws-lambda-events.git", from: "0.5.0"),
         .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.22.0"),
         .package(url: "https://github.com/swift-server/swift-service-lifecycle.git", from: "2.6.3"),

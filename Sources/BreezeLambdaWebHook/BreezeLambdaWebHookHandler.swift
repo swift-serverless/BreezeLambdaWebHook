@@ -21,7 +21,7 @@ import FoundationEssentials
 import Foundation
 #endif
 
-public protocol BreezeLambdaWebHookHandler: LambdaHandler {
+public protocol BreezeLambdaWebHookHandler: LambdaHandler, Sendable {
     var handlerContext: HandlerContext { get }
     init(handlerContext: HandlerContext)
     func handle(_ event: APIGatewayV2Request, context: LambdaContext) async throws -> APIGatewayV2Response
