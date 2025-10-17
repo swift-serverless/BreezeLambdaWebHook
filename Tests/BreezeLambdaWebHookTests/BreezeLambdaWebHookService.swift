@@ -28,7 +28,7 @@ import Foundation
 import NIOCore
 
 
-@Suite("BreezeLambdaWebHookServiceTests")
+@Suite(.serialized)
 struct BreezeLambdaWebHookServiceTests {
     
     let decoder = JSONDecoder()
