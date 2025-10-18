@@ -28,6 +28,9 @@ coverage:
 		--instr-profile=$(SWIFT_BIN_PATH)/codecov/default.profdata \
 		--format=lcov > $(GITHUB_WORKSPACE)/lcov.info
 
+local_invoke_demo_app:
+	curl -X POST 127.0.0.1:7000/invoke -H "Content-Type: application/json" -d @Tests/BreezeLambdaWebHookTests/Fixtures/get_webhook_api_gtw.json
+
 preview_docc_lambda_api:
 	swift package --disable-sandbox preview-documentation --target BreezeLambdaWebHook
 
