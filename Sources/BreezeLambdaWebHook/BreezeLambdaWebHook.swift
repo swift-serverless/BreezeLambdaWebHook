@@ -53,18 +53,20 @@ public struct BreezeLambdaWebHook<LambdaHandler: BreezeLambdaWebHookHandler>: Se
     /// handling any errors that may occur during the process.
     /// It gracefully shuts down the service on termination signals.
     public func run() async throws {
+        let handlerContext = HandlerContext(config: config)
+        let lambdaHandler = LambdaHandler(handlerContext: handlerContext)
+        let runtime = LambdaRuntime(body: lambdaHandler.handle)
+
+        let serviceGroup = ServiceGroup(
+            services: [handlerContext, runtime],
+            gracefulShutdownSignals: [.sigterm, .sigint],
+            logger: config.logger
+        )
         do {
-            let lambdaService = BreezeLambdaWebHookService<LambdaHandler>(
-                config: config
-            )
-            let serviceGroup = ServiceGroup(
-                services: [lambdaService],
-                gracefulShutdownSignals: [.sigterm, .sigint],
-                logger: config.logger
-            )
             config.logger.error("Starting \(name) ...")
             try await serviceGroup.run()
         } catch {
+            try? handlerContext.syncShutdown()
             config.logger.error("Error running \(name): \(error.localizedDescription)")
         }
     }
