@@ -1,4 +1,4 @@
-//    Copyright 2023 (c) Andrea Scuderi - https://github.com/swift-serverless
+//    Copyright 2024 (c) Andrea Scuderi - https://github.com/swift-serverless
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -13,79 +13,73 @@
 //    limitations under the License.
 
 import Testing
+@testable import AsyncHTTPClient
 import AWSLambdaEvents
-import AWSLambdaRuntime
-import AsyncHTTPClient
+@testable import AWSLambdaRuntime
+@testable import ServiceLifecycle
+import ServiceLifecycleTestKit
 @testable import BreezeLambdaWebHook
 import Logging
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
 import Foundation
+#endif
+import NIOCore
 
-@Suite("BreezeLambdaWebHookSuite")
-struct BreezeLambdaWebHookTests: ~Copyable {
 
+@Suite(.serialized)
+struct BreezeLambdaWebHookTests {
+    
     let decoder = JSONDecoder()
-    let config = BreezeHTTPClientConfig(
-        timeout: .seconds(1),
-        logger: Logger(label: "test")
-    )
     
-    init() {
-        setEnvironmentVar(name: "_HANDLER", value: "build/webhook", overwrite: true)
-        setEnvironmentVar(name: "LOCAL_LAMBDA_SERVER_ENABLED", value: "true", overwrite: true)
+    @Test("BreezeLambdaWebHook can be shutdown gracefully")
+    func breezeLambdaWebHookCanBeShutdownGracefully() async throws {
+        await testGracefulShutdown { gracefulShutdownTestTrigger in
+            let (gracefulStream, continuation) = AsyncStream<Void>.makeStream()
+            await withThrowingTaskGroup(of: Void.self) { group in
+                let logger = Logger(label: "test")
+                let config = BreezeHTTPClientConfig(timeout: .seconds(30), logger: logger)
+                let sut = BreezeLambdaWebHook<MockHandler>.init(name: "Test", config: config)
+                group.addTask {
+                    try await Task.sleep(nanoseconds: 1_000_000_000)
+                    gracefulShutdownTestTrigger.triggerGracefulShutdown()
+                }
+                group.addTask {
+                    await withGracefulShutdownHandler {
+                        do {
+                            try await sut.run()
+                        } catch {
+                            Issue.record("Error running BreezeLambdaWebHook: \(error.localizedDescription)")
+                        }
+                    } onGracefulShutdown: {
+                        logger.info("On Graceful Shutdown")
+                        continuation.yield()
+                    }
+                }
+                for await _ in gracefulStream {
+                    #expect(sut.name == "Test")
+                    #expect(sut.config.timeout == .seconds(30))
+                    continuation.finish()
+                    logger.info("Graceful shutdown stream received")
+                    group.cancelAll()
+                }
+            }
+        }
+    }
+}
+
+struct MockHandler: BreezeLambdaWebHookHandler {
+    let handlerContext: HandlerContext
+    
+    init(handlerContext: HandlerContext) {
+        self.handlerContext = handlerContext
     }
     
-    deinit {
-        unsetenv("LOCAL_LAMBDA_SERVER_ENABLED")
-        unsetenv("_HANDLER")
-    }
-    
-    @Test("PostWhenMissingBody_ThenError")
-    func postWhenMissingBody_thenError() async throws {
-        let createRequest = try Fixtures.fixture(name: Fixtures.getWebHook, type: "json")
-        let request = try decoder.decode(APIGatewayV2Request.self, from: createRequest)
-        let apiResponse: APIGatewayV2Response = try await Lambda.test(MyPostWebHook.self, config: config, with: request)
-        let response: APIGatewayV2Response.BodyError = try apiResponse.decodeBody()
-        
-        #expect(apiResponse.statusCode == .badRequest)
-        #expect(apiResponse.headers == [ "Content-Type": "application/json" ])
-        #expect(response.error == "invalidRequest")
-    }
-    
-    @Test("PostWhenBody_ThenValue")
-    func postWhenBody_thenValue() async throws {
-        let createRequest = try Fixtures.fixture(name: Fixtures.postWebHook, type: "json")
-        let request = try decoder.decode(APIGatewayV2Request.self, from: createRequest)
-        let apiResponse: APIGatewayV2Response = try await Lambda.test(MyPostWebHook.self, config: config, with: request)
-        let response: MyPostResponse = try apiResponse.decodeBody()
-        let body: MyPostRequest = try request.bodyObject()
-        
-        #expect(apiResponse.statusCode == .ok)
-        #expect(apiResponse.headers == [ "Content-Type": "application/json" ])
-        #expect(response.body == body.value)
-        #expect(response.handler == "build/webhook")
-    }
-    
-    @Test("GetWhenMissingQuery_ThenError")
-    func getWhenMissingQuery_thenError() async throws {
-        let createRequest = try Fixtures.fixture(name: Fixtures.postWebHook, type: "json")
-        let request = try decoder.decode(APIGatewayV2Request.self, from: createRequest)
-        let apiResponse: APIGatewayV2Response = try await Lambda.test(MyGetWebHook.self, config: config, with: request)
-        let response: APIGatewayV2Response.BodyError = try apiResponse.decodeBody()
-        
-        #expect(apiResponse.statusCode == .badRequest)
-        #expect(apiResponse.headers == [ "Content-Type": "application/json" ])
-        #expect(response.error == "invalidRequest")
-    }
-    
-    @Test("GetWhenQuery_ThenValue")
-    func getWhenQuery_thenValue() async throws {
-        let createRequest = try Fixtures.fixture(name: Fixtures.getWebHook, type: "json")
-        let request = try decoder.decode(APIGatewayV2Request.self, from: createRequest)
-        let apiResponse: APIGatewayV2Response = try await Lambda.test(MyGetWebHook.self, config: config, with: request)
-        let response: [String: String] = try apiResponse.decodeBody()
-        
-        #expect(apiResponse.statusCode == .ok)
-        #expect(apiResponse.headers == [ "Content-Type": "application/json" ])
-        #expect(response.count == 2)
+    func handle(_ event: APIGatewayV2Request, context: LambdaContext) async throws -> APIGatewayV2Response {
+        return APIGatewayV2Response(
+            statusCode: .ok,
+            body: "Mock response"
+        )
     }
 }

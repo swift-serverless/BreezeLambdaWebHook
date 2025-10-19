@@ -23,10 +23,25 @@ import Foundation
 import ServiceLifecycle
 import Logging
 
+///
+/// `HandlerContext` provides a context for Lambda handlers, encapsulating an HTTP client and configuration.
+///
+/// This struct is responsible for managing the lifecycle of the HTTP client used for outbound requests,
+/// including graceful and synchronous shutdown procedures. It also provides logging for lifecycle events.
+///
+/// - Parameters:
+///    - httpClient: The HTTP client used for making outbound HTTP requests.
+///    - config: The configuration for the HTTP client, including timeout and logger.
+///
+///  - Conforms to: `Service`
 public struct HandlerContext: Service {
+    /// The HTTP client used for outbound requests.
     public let httpClient: HTTPClient
+    /// The configuration for the HTTP client.
     private let config: BreezeHTTPClientConfig
     
+    /// Initializes a new `HandlerContext` with the provided configuration.
+    /// - Parameter config: The configuration for the HTTP client.
     public init(config: BreezeHTTPClientConfig) {
         let timeout = HTTPClient.Configuration.Timeout(
             connect: config.timeout,
@@ -40,6 +55,7 @@ public struct HandlerContext: Service {
         self.config = config
     }
 
+    /// Runs the `HandlerContext` and waits for a graceful shutdown.
     public func run() async throws {
         config.logger.info("BreezeHTTPClientProvider started")
         try await gracefulShutdown()
@@ -47,11 +63,13 @@ public struct HandlerContext: Service {
         try await onGracefulShutdown()
     }
 
+    /// Handles graceful shutdown of the HTTP client.
     public func onGracefulShutdown() async throws {
         try await httpClient.shutdown()
         config.logger.info("BreezeHTTPClientProvider: HTTPClient shutdown is completed.")
     }
 
+    /// Synchronously shuts down the HTTP client.
     public func syncShutdown() throws {
         try httpClient.syncShutdown()
         config.logger.info("BreezeHTTPClientProvider: HTTPClient syncShutdown is completed.")
