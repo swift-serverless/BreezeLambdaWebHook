@@ -42,20 +42,16 @@ struct BreezeLambdaWebHookTests {
                 let config = BreezeHTTPClientConfig(timeout: .seconds(30), logger: logger)
                 let sut = BreezeLambdaWebHook<MockHandler>.init(name: "Test", config: config)
                 group.addTask {
-                    try await Task.sleep(nanoseconds: 1_000_000_000)
-                    gracefulShutdownTestTrigger.triggerGracefulShutdown()
-                }
-                group.addTask {
-                    await withGracefulShutdownHandler {
-                        do {
-                            try await sut.run()
-                        } catch {
-                            Issue.record("Error running BreezeLambdaWebHook: \(error.localizedDescription)")
-                        }
+                    try await withGracefulShutdownHandler {
+                        try await sut.run()
                     } onGracefulShutdown: {
                         logger.info("On Graceful Shutdown")
                         continuation.yield()
                     }
+                }
+                group.addTask {
+                    try await Task.sleep(nanoseconds: 1_000_000_000)
+                    gracefulShutdownTestTrigger.triggerGracefulShutdown()
                 }
                 for await _ in gracefulStream {
                     #expect(sut.name == "Test")
