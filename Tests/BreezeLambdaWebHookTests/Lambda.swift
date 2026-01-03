@@ -34,17 +34,12 @@ extension Lambda {
             let logger = Logger(label: "evaluateHandler")
             let decoder = JSONDecoder()
             let encoder = JSONEncoder()
-            let timeout = HTTPClient.Configuration.Timeout(
-                connect: config.timeout,
-                read: config.timeout
-            )
-            let configuration = HTTPClient.Configuration(timeout: timeout)
-            let httpClient = HTTPClient(
-                eventLoopGroupProvider: .singleton,
-                configuration: configuration
-            )
+            let handlerContext = HandlerContext(config: config)
+            defer {
+                try? handlerContext.syncShutdown()
+            }
             let sut = handlerType.init(
-                handlerContext: HandlerContext(httpClient: httpClient)
+                handlerContext: handlerContext
             )
             let closureHandler = ClosureHandler { event, context in
                 //Inject Mock Response
@@ -62,6 +57,7 @@ extension Lambda {
             let context = LambdaContext.__forTestsOnly(
                 requestID: UUID().uuidString,
                 traceID: UUID().uuidString,
+                tenantID: nil,
                 invokedFunctionARN: "arn:",
                 timeout: .milliseconds(6000),
                 logger: logger
@@ -69,7 +65,6 @@ extension Lambda {
             try await handler.handle(event, responseWriter: writer, context: context)
             let result = await writer.output ?? ByteBuffer()
             let value = Data(result.readableBytesView)
-            try await httpClient.shutdown()
             return try decoder.decode(APIGatewayV2Response.self, from: value)
         }
 }

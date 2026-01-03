@@ -32,8 +32,4 @@ public extension BreezeLambdaWebHookHandler {
     var handler: String? {
         Lambda.env("_HANDLER")
     }
-    
-    var httpClient: AsyncHTTPClient.HTTPClient {
-        handlerContext.httpClient
-    }
 }

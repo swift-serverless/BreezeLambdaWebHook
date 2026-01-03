@@ -29,10 +29,14 @@ struct DemoLambdaHandler: BreezeLambdaWebHookHandler, Sendable {
         self.handlerContext = handlerContext
     }
     
+    var httpClient: HTTPClient {
+        handlerContext.httpClient
+    }
+    
     func handle(_ event: APIGatewayV2Request, context: LambdaContext) async throws -> APIGatewayV2Response {
         context.logger.info("Received event: \(event)")
         let request = HTTPClientRequest(url: "https://example.com")
-        let response = try await handlerContext.httpClient.execute(request, timeout: .seconds(5))
+        let response = try await httpClient.execute(request, timeout: .seconds(5))
         let bytes = try await response.body.collect(upTo: 1024 * 1024) // 1 MB Buffer
         let body = String(buffer: bytes)
         context.logger.info("Response body: \(body)")
